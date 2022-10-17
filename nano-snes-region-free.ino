@@ -65,6 +65,7 @@ void readLatch() {
 void readClock() {
   clockState = (PIND & B00000100) >> 2;
   if (clockState == 1) {
+    delayMicroseconds(5);
     buttonsState[cycleCounter] = (PIND & B00100000);
     cycleCounter++;
   }
@@ -96,6 +97,6 @@ void setup() {
 }
 
 void loop() {
-  Serial.println(buttonsState[4]);
+  Serial.println(buttonsState[11]);
 
 }
