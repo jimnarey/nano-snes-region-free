@@ -34,7 +34,18 @@
  *  Helpful reference for reading a SNES controller: https://github.com/burks10/Arduino-SNES-Controller/blob/master/Arduino%20Micro%20SNES%20Controller/USBSNES/Arduino%20Micro%20SNES%20Controller.ino
  */
 
-
+#define bIndex 0
+#define yIndex 1
+#define selectIndex 2
+#define startIndex 3
+#define upIndex 4
+#define downIndex 5
+#define leftIndex 6
+#define rightIndex 7
+#define aIndex 8
+#define xIndex 9
+#define lIndex 10
+#define rIndex 11
 
 
 int latchPin = 3; // Normally low?
@@ -97,6 +108,6 @@ void setup() {
 }
 
 void loop() {
-  Serial.println(buttonsState[11]);
+  Serial.println(buttonsState[leftIndex]);
 
 }
