@@ -9,8 +9,8 @@
  *  | [ ]         V.ref     ___    SS/D10 PB2 PWM [ ] |
  *  | [ ]     PC0 A0       / N \       D9 PB1 PWM [ ] |
  *  | [ ]     PC1 A1      /  A  \      D8 PB0     [ ] |
- *  | [ ]     PC2 A2      \  N  /      D7 PD7     [ ] |
- *  | [ ]     PC3 A3       \_0_/       D6 PD6 PWM [ ] |
+ *  | [ ]     PC2 A2      \  N  /      D7 PD7     [P] |
+ *  | [ ]     PC3 A3       \_0_/       D6 PD6 PWM [I] |
  *  | [ ]     PC4 A4/SDA               D5 PD5 PWM [S] |
  *  | [ ]     PC5 A5/SCL               D4 PD4     [C] |
  *  | [ ]         A6              INT1/D3 PD3 PWM [L] |
@@ -56,6 +56,9 @@ int redPin = 9;
 int greenPin = 10;
 int bluePin = 11;
 
+int PPUPin = 6;
+int CICPin = 7;
+
 volatile int latchState = 0;
 volatile int cycleStart = 0;
 volatile int clockState = 0;
@@ -83,6 +86,21 @@ void readClock() {
   
 }
 
+void set60Hz() {
+  digitalWrite(PPUPin, LOW);
+}
+
+void set50Hz() {
+  digitalWrite(PPUPin, HIGH);
+}
+
+void disableCIC() {
+  digitalWrite(CICPin, LOW);
+}
+
+void enableCIC() {
+  digitalWrite(CICPin, HIGH);
+}
 
 void setLedColour(int intensityRed, int intensityGreen, int intensityBlue) {
   analogWrite(redPin, intensityRed);
@@ -93,21 +111,39 @@ void setLedColour(int intensityRed, int intensityGreen, int intensityBlue) {
 void setup() {
 
   Serial.begin(115200);
-
   pinMode(latchPin, INPUT);
   attachInterrupt(digitalPinToInterrupt(latchPin), readLatch, CHANGE); // Change?
   pinMode(clockPin, INPUT);
   attachInterrupt(digitalPinToInterrupt(clockPin), readClock, CHANGE);
   pinMode(serialPin, INPUT);
-  
+
   pinMode(redPin, OUTPUT);
   pinMode(greenPin, OUTPUT);
   pinMode(bluePin, OUTPUT);
 
+  pinMode(PPUPin, OUTPUT);
+  pinMode(CICPin, OUTPUT);
+  set60Hz();
+  disableCIC();
 
 }
 
 void loop() {
-  Serial.println(buttonsState[leftIndex]);
+  // Serial.println(buttonsState[leftIndex]);
+
+  while (buttonsState[selectIndex] != 0 && buttonsState[lIndex] != 0) {
+
+    if (buttonsState[bIndex] != 0) {
+      set60Hz();
+    } else if (buttonsState[aIndex] != 0) {
+      set50Hz();
+    } else if (buttonsState[yIndex] != 0) {
+      disableCIC();      
+    } else if (buttonsState[xIndex] != 0) {
+      enableCIC();
+    }
+
+  }
+  delay(100);
 
 }
