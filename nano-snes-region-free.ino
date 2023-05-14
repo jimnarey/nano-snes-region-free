@@ -43,8 +43,8 @@
 
 #include <EEPROM.h>
 
-#define DEBUG
-#define ENABLE_CIC_SWITCH
+// #define DEBUG
+// #define ENABLE_CIC_SWITCH
 
 #define address60HzState 0
 #ifdef ENABLE_CIC_SWITCH
@@ -98,6 +98,7 @@ struct rgbColour {
 };
 
 rgbColour flashColour;
+rgbColour rgbOff = {0,0,0};
 rgbColour rgbRed = {255, 0, 0};
 rgbColour rgbGreen = {0, 255, 0};
 rgbColour rgbBlue = {0, 0, 255};
@@ -151,7 +152,7 @@ void flashLed(rgbColour colour) {
   for (int i = 0; i < 3; i++) {
     setLedColour(colour);
     delay(1000);
-    setLedColour(rgbRed);
+    setLedColour(rgbOff);
     delay(200);
   }
 }
@@ -237,6 +238,7 @@ void loop() {
   Serial.println();
   Serial.println(buttonsState);
 #endif
+  setLedColour(rgbRed);
   delay(50);
   
 }
