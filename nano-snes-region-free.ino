@@ -44,7 +44,15 @@
 
 // TODO - Why the need for a reset on start-up?
 
-#define DEBUG
+#include <EEPROM.h>
+
+// #define DEBUG
+#define ENABLE_CIC_SWITCH
+
+#define address60HzState 0
+#ifdef ENABLE_CIC_SWITCH
+#define addressCICState 2
+#endif
 
 #define bIndex 0
 #define yIndex 1
@@ -72,8 +80,8 @@ int bluePin = 11;
 int PPUPin = 6;
 int CICPin = 7;
 
-int state60Hz = LOW;
-int stateCIC = LOW;
+int state60Hz;
+int stateCIC;
 
 volatile int latchState = 0;
 volatile int cycleStart = 0;
@@ -86,8 +94,7 @@ int const resetMask = 1540;
 int const cicToggleMask = 1030;
 int const refreshToggleMask = 1029;
 
-void readLatch()
-{
+void readLatch() {
 
 	uint8_t i;
   buttonsState = 0;
@@ -108,6 +115,20 @@ void readLatch()
 
 }
 
+int getPinState(int eepromAddress) {
+  int value;
+  EEPROM.get(eepromAddress, value);
+  if (value > 0) { // Handle previously unwritten EEPROM address, which will be 255
+    return 1;
+  } 
+  return 0;
+}
+
+void setPinState(int pin, int eepromAddress, int value) {
+  digitalWrite(pin, value);
+  EEPROM.put(eepromAddress, value);
+}
+
 void setLedColour(int intensityRed, int intensityGreen, int intensityBlue) {
   analogWrite(redPin, intensityRed);
   analogWrite(greenPin, intensityGreen);
@@ -123,7 +144,6 @@ void flashLed(int intensityRed, int intensityGreen, int intensityBlue) {
   }
 }
 
-
 void resetSNES() {
   pinMode(resetPin, OUTPUT);
   digitalWrite(resetPin, LOW);
@@ -133,22 +153,35 @@ void resetSNES() {
 
 void setup() {
 
+#ifdef DEBUG
   Serial.begin(115200);
   Serial.println();
+#endif
 
-  pinMode(resetPin, INPUT);
+  // Controller read pins
   pinMode(latchPin, INPUT);
   attachInterrupt(digitalPinToInterrupt(latchPin), readLatch, FALLING);
   pinMode(clockPin, INPUT);
   pinMode(serialPin, INPUT);
 
+  // LED pins  
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(redPin, OUTPUT);
   pinMode(greenPin, OUTPUT);
   pinMode(bluePin, OUTPUT);
 
+  // SNES control pins
   pinMode(PPUPin, OUTPUT);
+  pinMode(resetPin, INPUT);
+#ifdef ENABLE_CIC_SWITCH
   pinMode(CICPin, OUTPUT);
+#endif
+
+  state60Hz = getPinState(address60HzState);
+#ifdef ENABLE_CIC_SWITCH
+  stateCIC = getPinState(addressCICState);
+#endif
+
   digitalWrite(PPUPin, state60Hz);
   digitalWrite(CICPin, stateCIC);
   setLedColour(255, 0, 0);
@@ -157,33 +190,38 @@ void setup() {
 
 void loop() {
 
-  if (buttonsState == 1540) {
+  if (buttonsState == 1540) { // Left, Select, X
     resetSNES();
-  } else if (buttonsState == 1030) {
-     if (stateCIC == HIGH) {
-      // Disable CIC -- is this right?
-      stateCIC = LOW;
-      // digitalWrite(CICPin, LOW);          
-      flashLed(255, 0, 255);
-    } else {
-      // Enable CIC -- is this right?
-      stateCIC = HIGH;
-      // digitalWrite(CICPin, HIGH);
-      flashLed(255, 125, 0);
-    }   
-  } else if (buttonsState == 1029) {
+    flashLed(255, 0, 0);
+  }
+ 
+  else if (buttonsState == 1029) { // Left, Select, B
     if (state60Hz == HIGH) {
-      // Disabe 60Hz -- is this right?
-      state60Hz = LOW;
-      // digitalWrite(PPUPin, LOW);
-      flashLed(0, 255, 0);
+      state60Hz = LOW; // Disable 60Hz
+      flashLed(0, 255, 0); // Green
     } else {
-      // Enable 60Hz -- is this right? 
       state60Hz = HIGH;
-      // digitalWrite(PPUPin, HIGH);
-      flashLed(255, 0, 255);
+      flashLed(255, 255, 255); // White
     }
   }
+#ifdef ENABLE_CIC_SWITCH
+  else if (buttonsState == 1030) { // Left, Select, Y
+     if (stateCIC == HIGH) {
+      stateCIC = LOW; // Disable CIC        
+      flashLed(255, 0, 255); // Purple
+    } else {
+      stateCIC = HIGH;
+      flashLed(0, 0, 255); // Blue
+    }
+  }
+#endif
+
+  
+  setPinState(PPUPin, address60HzState, state60Hz);
+#ifdef ENABLE_CIC_SWITCH 
+  setPinState(CICPin, addressCICState, stateCIC);
+#endif  
+  setLedColour(255, 0, 0);
   
 #ifdef DEBUG
   Serial.println();
