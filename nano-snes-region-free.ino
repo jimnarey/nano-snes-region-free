@@ -36,9 +36,6 @@
  *  Helpful reference for reading a SNES controller: https://github.com/burks10/Arduino-SNES-Controller/blob/master/Arduino%20Micro%20SNES%20Controller/USBSNES/Arduino%20Micro%20SNES%20Controller.ino
  *  
  *
- *  LED blended colours: 
- *  - purple = 255, 0, 255
- *  - yellow = 255, 125, 0
  *
  */
 
@@ -46,7 +43,7 @@
 
 #include <EEPROM.h>
 
-// #define DEBUG
+#define DEBUG
 #define ENABLE_CIC_SWITCH
 
 #define address60HzState 0
@@ -67,9 +64,14 @@
 #define lIndex 10
 #define rIndex 11
 
+#define resetCombo 1540  // Left, Select, X
+#define cicToggleCombo 1030  // Left, Select, B
+#define refreshToggleCombo 1029  // Left, Select, Y
+
+
 int resetPin = 8;
 
-int latchPin = 3; // Normally low?
+int latchPin = 3;
 int clockPin = 2;
 int serialPin = 5; 
 
@@ -87,12 +89,22 @@ volatile int latchState = 0;
 volatile int cycleStart = 0;
 volatile int clockState = 0;
 volatile int cycleCounter = 0;
-
 volatile int buttonsState = 0;
 
-int const resetMask = 1540;
-int const cicToggleMask = 1030;
-int const refreshToggleMask = 1029;
+struct rgbColour {
+  int red;
+  int green;
+  int blue;
+};
+
+rgbColour flashColour;
+rgbColour rgbRed = {255, 0, 0};
+rgbColour rgbGreen = {0, 255, 0};
+rgbColour rgbBlue = {0, 0, 255};
+rgbColour rgbWhite = {255, 255, 255};
+rgbColour rgbPurple = {255, 0, 255};
+// rgbColour rgbYellow = {255. 125, 0}; Currently unused
+
 
 void readLatch() {
 
@@ -115,7 +127,7 @@ void readLatch() {
 
 }
 
-int getPinState(int eepromAddress) {
+int getSavedPinState(int eepromAddress) {
   int value;
   EEPROM.get(eepromAddress, value);
   if (value > 0) { // Handle previously unwritten EEPROM address, which will be 255
@@ -129,17 +141,17 @@ void setPinState(int pin, int eepromAddress, int value) {
   EEPROM.put(eepromAddress, value);
 }
 
-void setLedColour(int intensityRed, int intensityGreen, int intensityBlue) {
-  analogWrite(redPin, intensityRed);
-  analogWrite(greenPin, intensityGreen);
-  analogWrite(bluePin, intensityBlue);
+void setLedColour(rgbColour colour) {
+  analogWrite(redPin, colour.red);
+  analogWrite(greenPin, colour.green);
+  analogWrite(bluePin, colour.blue);
 }
 
-void flashLed(int intensityRed, int intensityGreen, int intensityBlue) {
+void flashLed(rgbColour colour) {
   for (int i = 0; i < 3; i++) {
-    setLedColour(intensityRed, intensityGreen, intensityBlue);
+    setLedColour(colour);
     delay(1000);
-    setLedColour(0, 0, 0);
+    setLedColour(rgbRed);
     delay(200);
   }
 }
@@ -177,52 +189,50 @@ void setup() {
   pinMode(CICPin, OUTPUT);
 #endif
 
-  state60Hz = getPinState(address60HzState);
+  state60Hz = getSavedPinState(address60HzState);
 #ifdef ENABLE_CIC_SWITCH
-  stateCIC = getPinState(addressCICState);
+  stateCIC = getSavedPinState(addressCICState);
 #endif
 
   digitalWrite(PPUPin, state60Hz);
   digitalWrite(CICPin, stateCIC);
-  setLedColour(255, 0, 0);
+  setLedColour(rgbRed);
 
 }
 
 void loop() {
 
-  if (buttonsState == 1540) { // Left, Select, X
+  if (buttonsState == resetCombo) {
     resetSNES();
-    flashLed(255, 0, 0);
+    flashLed(rgbRed);
   }
  
-  else if (buttonsState == 1029) { // Left, Select, B
+  else if (buttonsState == refreshToggleCombo) {
     if (state60Hz == HIGH) {
-      state60Hz = LOW; // Disable 60Hz
-      flashLed(0, 255, 0); // Green
+      state60Hz = LOW; // Enable 60Hz
+      setPinState(PPUPin, address60HzState, state60Hz);
+      flashLed(rgbGreen);
     } else {
       state60Hz = HIGH;
-      flashLed(255, 255, 255); // White
+      setPinState(PPUPin, address60HzState, state60Hz);
+      flashLed(rgbWhite);
     }
   }
 #ifdef ENABLE_CIC_SWITCH
-  else if (buttonsState == 1030) { // Left, Select, Y
+  else if (buttonsState == cicToggleCombo) {
      if (stateCIC == HIGH) {
-      stateCIC = LOW; // Disable CIC        
-      flashLed(255, 0, 255); // Purple
+      stateCIC = LOW; // Disable CIC
+      setPinState(CICPin, addressCICState, stateCIC);
+      flashLed(rgbPurple);
     } else {
       stateCIC = HIGH;
-      flashLed(0, 0, 255); // Blue
+      setPinState(CICPin, addressCICState, stateCIC);
+      flashLed(rgbBlue);
     }
+
   }
 #endif
 
-  
-  setPinState(PPUPin, address60HzState, state60Hz);
-#ifdef ENABLE_CIC_SWITCH 
-  setPinState(CICPin, addressCICState, stateCIC);
-#endif  
-  setLedColour(255, 0, 0);
-  
 #ifdef DEBUG
   Serial.println();
   Serial.println(buttonsState);
