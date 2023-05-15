@@ -15,7 +15,7 @@
  *  | [ ]     PC5 A5/SCL               D4 PD4     [ ] |
  *  | [ ]         A6              INT1/D3 PD3 PWM [L] |
  *  | [ ]         A7              INT0/D2 PD2     [C] |
- *  | [ ]         5V                  GND         [ ] |
+ *  | [+]         5V                  GND         [-] |
  *  | [ ]         RST                 RST PC6     [ ] |
  *  | [ ]         GND   5V MOSI GND   RX  PD0     [ ] |
  *  | [ ]         Vin   [ ] [ ] [ ]   TX  PD1     [ ] |
@@ -26,7 +26,7 @@
  *  B6 & B7 mapped to crystal
  *  C6 & C7 not available
  *
- *  R = red; G = green; B = blue; r = reset; c = CIC; p = PPU; L = latch; C = clock
+ *  R = red; G = green; B = blue; r = reset; c = CIC; p = PPU; L = latch; C = clock; S = serial/data, + = +5V, - = 0V
  *  
  *  Documentation on whether the analog pins on the Nano can be used for digital input is inconsistent.
  *  This says no (see end): https://www.arduino.cc/reference/en/language/functions/digital-io/digitalread/
