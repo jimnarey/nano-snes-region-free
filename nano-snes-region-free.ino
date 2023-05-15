@@ -35,7 +35,7 @@
  *  
  *  Helpful reference for reading a SNES controller: https://github.com/burks10/Arduino-SNES-Controller/blob/master/Arduino%20Micro%20SNES%20Controller/USBSNES/Arduino%20Micro%20SNES%20Controller.ino
  *  
- *
+ *  Code for reading controller adapted from this project: https://github.com/Nold360/lazy_mans_snes_reset/blob/master/main.c
  *
  */
 
